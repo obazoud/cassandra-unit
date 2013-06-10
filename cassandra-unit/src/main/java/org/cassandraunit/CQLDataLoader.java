@@ -34,7 +34,11 @@ public class CQLDataLoader {
 
 
     public void load(CQLDataSet dataSet) {
-        initKeyspace(session,dataSet.getKeyspaceName());
+      load(dataSet, true);
+    }
+
+    public void load(CQLDataSet dataSet, boolean dropAndCreateKeyspace) {
+        initKeyspace(session,dataSet.getKeyspaceName(), dropAndCreateKeyspace);
         log.debug("loading data");
         for (String query : dataSet.getCQLQueries()) {
             session.execute(query);
@@ -42,14 +46,16 @@ public class CQLDataLoader {
     }
 
 
-    private void initKeyspace(Session session, String keyspaceName) {
+    private void initKeyspace(Session session, String keyspaceName, boolean dropAndCreateKeyspace) {
         log.debug("initKeyspace " + keyspaceName);
         ResultSet keyspaceQueryResult =
                 session.execute("SELECT keyspace_name from system.schema_keyspaces where keyspace_name='" + keyspaceName + "'");
-        if(keyspaceQueryResult.iterator().hasNext()){
+        if (keyspaceQueryResult.iterator().hasNext() && dropAndCreateKeyspace){
             session.execute("DROP KEYSPACE "+ keyspaceName);
         }
-        session.execute("CREATE KEYSPACE " + keyspaceName + " WITH replication={'class' : 'SimpleStrategy', 'replication_factor':1}");
+        if (dropAndCreateKeyspace) {
+          session.execute("CREATE KEYSPACE " + keyspaceName + " WITH replication={'class' : 'SimpleStrategy', 'replication_factor':1}");
+        }
         session.execute("use " + keyspaceName);
     }
 }
